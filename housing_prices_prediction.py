@@ -149,14 +149,31 @@ def run_Lasso(X_train: pd.DataFrame, X_test: pd.DataFrame, Y_train: pd.Series, Y
     lasso.fit(X_train_scaled, Y_train)
 
     # store lasso results in dictionary
-    lasso_results = {'alpha': lasso.alpha_, 'R2': lasso.score(X_test_scaled, Y_test), 'Features': lasso.coef_ != 0}
+    lasso_results = {'alpha': lasso.alpha_, 'R2': lasso.score(X_test_scaled, Y_test), 'coefs': lasso.coef_}
 
     return lasso_results
 
 #################################################################################################
-def visualize_lasso_path(X_train: pd.DataFrame, Y_train: pd.Series, lasso_results: dict) -> None:
+def visualize_coef_path(X_train: pd.DataFrame, Y_train: pd.Series, lasso_results: dict) -> None:
     '''
-    TBU
+    Function that creates a line graph showing how the value of coefficients by feature changes
+    as alpha changes. Includes a dashed vertical line showing the value of alpha that the
+    cross validation ultimately choose.
+    
+    Parameters:
+    -----------
+        X_train (DataFrame):  pandas DataFrame containing the training subset
+                              for the independent variables in the California 
+                              housing dataset
+        Y_train (Series):     pandas Series containing the training subset
+                              for the dependent variable in the California
+                              housing dataset
+        lasso_results (dict): dictionary containing alpha, r-squared, and the
+                              coefficients for each feature obtained from a CV
+                              lasso model
+    
+    Returns:
+        None
     '''
     # standardize features for train and test datasets
     scaler = StandardScaler()
@@ -176,24 +193,62 @@ def visualize_lasso_path(X_train: pd.DataFrame, Y_train: pd.Series, lasso_result
 
     # create line plot that shows how each feature's coefficient changes as alpha changes
     sns.lineplot(data = paths, x = 'alpha', y = 'coef', hue = 'feature')
+    
+    # update x-axis and y-axis labels
+    plt.xlabel('Alpha')
+    plt.ylabel('Coefficient')
 
     # rescale x-axis to a log scale to account for alphas that range significantly in magnitude
     plt.xscale('log')
 
     # add dashed vertical line at the alpha that cross validation choose
     plt.axvline(lasso_results['alpha'], linestyle = '--', color = 'black')
+
+    # add plot title
+    plt.title("Visualization of Coefficient Path During Cross Validation")
     
     # display the plot
     plt.show()
+
+#################################################################################################
+def visualize_coef_selection(features: pd.Series, coefs: pd.Series) -> None:
+    '''
+    Function that creates a bar graph showing the magnitude of all non-zero coefficients sorted
+    from least to greatest
+    '''
+    # create pandas DataFrame pairing each feature with its coefficient
+    df = pd.DataFrame({'feature': features, 'coef': coefs})
+
+    # keep only nonzero coefficients and sort from least to greatest
+    df = df[df['coef'] != 0].sort_values('coef')
+
+    # create bar plot showing relative magnitude of each coefficient
+    bargraph = sns.barplot(data = df, x = 'coef', y = 'feature')
+
+    # add data labels to bar graph
+    for container in bargraph.containers:
+        bargraph.bar_label(container, fmt='{:,.2f}', padding = 3) # type: ignore
     
+    # update x-axis and y-axis labels
+    plt.xlabel('Coefficient')
+    plt.ylabel('Feature')
+
+    # add plot title
+    plt.title("Nonzero Lasso Coefficients")
+
+    # display the plot
+    plt.show()
 
 #################################################################################################
 def main():
     # load housing data
     df = load_data()
+
+    # initialize variable to store dataset features
+    features = pd.Series(df.drop(columns = ['MedHouseVal']).columns)
     
     # generate correlation matrix for dataset features
-    visualize_data(df)
+    #visualize_data(df)
 
     # split dataset into training and testing subsets
     X_train, X_test, Y_train, Y_test = train_test(df)
@@ -202,7 +257,10 @@ def main():
     lasso_results = run_Lasso(X_train, X_test, Y_train, Y_test)
 
     # visualize alpha cross validation
-    visualize_lasso_path(X_train, Y_train, lasso_results)
+    #visualize_coef_path(X_train, Y_train, lasso_results)
+
+    # visualize coefficient selection
+    visualize_coef_selection(features, lasso_results['coefs'])
 
 if __name__ == "__main__":
     main()
