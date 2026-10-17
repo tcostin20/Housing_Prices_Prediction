@@ -133,13 +133,14 @@ def scale_data(x_train: pd.DataFrame, x_test: pd.DataFrame) -> tuple[pd.DataFram
         x_scaled (tuple): tuple of scaled train and test data for the features
     '''
     # initialize standard scaler
-    scaler = StandardScaler().set_output(transform = 'pandas')
+    scaler = StandardScaler()
+    scaler.set_output(transform = 'pandas')
     
     # scale train and test feature data
     x_train_scaled = scaler.fit_transform(x_train)
     x_test_scaled = scaler.transform(x_test)
 
-    return x_train_scaled, x_test_scaled
+    return x_train_scaled, x_test_scaled # type: ignore
 
 #################################################################################################
 def run_lasso(x_train_scaled: pd.DataFrame, x_test_scaled: pd.DataFrame, y_train: pd.Series, y_test: pd.Series) -> dict:
